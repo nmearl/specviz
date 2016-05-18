@@ -5,9 +5,11 @@ import random
 
 from ..third_party.qtpy.QtGui import *
 
-from astropy.units import Unit, Quantity, spectral_density, spectral
+from astropy.units import (Unit, Quantity, spectral_density, spectral,
+                           UnitConversionError)
 import pyqtgraph as pg
 from itertools import cycle
+import logging
 
 AVAILABLE_COLORS = cycle([(0, 0, 0), (0, 73, 73), (0, 146, 146),
                           (255, 109, 182), (255, 182, 219), (73, 0, 146),
@@ -23,7 +25,7 @@ class PlotContainer(object):
         self.style = style
         self._plot = plot
         self.error = None
-        self._plot_units = None
+        self._plot_units = (self._layer.units[0], self._layer.units[1], None)
         self.line_width = 1
 
         if self._plot is not None:
@@ -52,11 +54,17 @@ class PlotContainer(object):
         self.set_visibility(*self._visibility_state, override=True)
 
     def change_units(self, x, y=None, z=None):
-        self._plot_units = (
-            x or self._plot_units[0] or self.layer.layer_units[0],
-            y or self._plot_units[1] or self.layer.layer_units[1],
-            z)
+        if x is None or not self._layer.units[0].is_equivalent(
+                x, equivalencies=spectral()):
+            logging.error("Failed to convert x-axis plot units.")
+            x = self._plot_units[0] or self._layer.units[0]
 
+        if y is None or not self._layer.units[1].is_equivalent(
+                y, equivalencies=spectral_density(self.dispersion)):
+            logging.error("Failed to convert y-axis plot units.")
+            y = self._plot_units[1] or self._layer.units[1]
+
+        self._plot_units = (x, y, z)
         self.update()
 
     def set_visibility(self, pen_show, error_pen_show, inactive=True,
