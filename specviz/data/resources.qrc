@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>012-file.svg</file>
+    <file>014-save.svg</file>
+    <file>folder.svg</file>
+    <file>015-new.svg</file>
+  </qresource>
+</RCC>
