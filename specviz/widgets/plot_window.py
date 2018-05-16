@@ -9,24 +9,55 @@ from qtpy.uic import loadUi
 from ..utils import UI_PATH
 
 
-class PlotWindow(QMdiSubWindow):
+class UiPlotWindow(QMdiSubWindow):
     def __init__(self, *args, **kwargs):
-        super(PlotWindow, self).__init__(*args, **kwargs)
+        super(UiPlotWindow, self).__init__(*args, **kwargs)
 
+        # Setup UI
         self._main_window = QMainWindow()
         loadUi(os.path.join(UI_PATH, "plot_window.ui"), self._main_window)
 
         self._plot_widget = pg.PlotWidget()
-        self._plot_widget.plot(x=np.arange(10), y=np.random.sample(10))
 
         self._main_window.setCentralWidget(self._plot_widget)
 
         self.setWidget(self._main_window)
 
-        self._action = QAction(
-                qta.icon('fa.music',
-                         active='fa.legal',
-                         color='blue',
-                         color_active='orange'),
-                'Styling')
-        self._main_window.tool_bar.addAction(self._action)
+        # Add the qtawesome icons to the plot-specific actions
+        self._main_window.linear_region_action.setIcon(
+            qta.icon('fa.compress',
+                     active='fa.legal',
+                     color='black',
+                     color_active='orange'))
+
+        self._main_window.rectangular_region_action.setIcon(
+            qta.icon('fa.square',
+                     active='fa.legal',
+                     color='black',
+                     color_active='orange'))
+
+        self._main_window.plot_options_action.setIcon(
+            qta.icon('fa.line-chart',
+                     active='fa.legal',
+                     color='black',
+                     color_active='orange'))
+
+        self._main_window.export_plot_action.setIcon(
+            qta.icon('fa.download',
+                     active='fa.legal',
+                     color='black',
+                     color_active='orange'))
+
+
+class PlotWindow(UiPlotWindow):
+    def __init__(self, name=None, *args, **kwargs):
+        super(PlotWindow, self).__init__(*args, **kwargs)
+
+        self._name = name or "Untitled Plot"
+
+        # Add plot data from the data model
+        self._plot_widget.plot(np.arange(100), np.random.sample(100))
+
+    @property
+    def name(self):
+        return self._name

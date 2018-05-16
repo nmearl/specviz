@@ -11,8 +11,10 @@ class DataListModel(QAbstractListModel):
         super(DataListModel, self).__init__(*args, **kwargs)
 
         self._items = [
-            DataItem(name="My data {}".format(np.random.randint(0, 100)), color="cyan", parent=self),# model=PlotDataModel()),
-            DataItem(name="My data {}".format(np.random.randint(0, 100)), color="blue", visible=False, parent=self)#model=PlotDataModel())
+            DataItem(identifier="1", name="My data {}".format(np.random.randint(0, 100)), color="cyan", parent=self),
+            DataItem(identifier="2", name="My data {}".format(np.random.randint(0, 100)), color="blue", visible=False, parent=self),
+            DataItem(identifier="3", name="My data {}".format(np.random.randint(0, 100)), color="red", parent=self),
+            DataItem(identifier="4", name="My data {}".format(np.random.randint(0, 100)), color="green", parent=self),
         ]
 
         # The data model needs to listen for add data events
@@ -38,7 +40,7 @@ class DataListModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             return item.name
         elif role == Qt.DecorationRole:
-            icon = qta.icon('fa.circle' if item.visible else 'fa.circle-o',
+            icon = qta.icon('fa.eye' if item.visible else 'fa.eye-slash',
                             color=item.color)
             return icon
 

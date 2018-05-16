@@ -1,6 +1,6 @@
 import os
 
-from qtpy.QtWidgets import QMainWindow
+from qtpy.QtWidgets import QMainWindow, QSizePolicy, QWidget, QApplication, QActionGroup
 from qtpy.uic import loadUi
 
 from .workspace import Workspace
@@ -10,70 +10,85 @@ from . import resources
 __all__ = ['MainWindow']
 
 
-class MainWindow(QMainWindow):
+class UiMainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
+        super(UiMainWindow, self).__init__(*args, **kwargs)
 
         # Load the ui file and attached it to this instance
         loadUi(os.path.join(UI_PATH, "main_window.ui"), self)
 
-        # Set the tabs to be expanding; os-specific
-        self.tab_widget.tabBar().setExpanding(True)
+        # Add spacers to the main tool bar
+        spacer = QWidget()
+        size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(1)
+        spacer.setSizePolicy(size_policy)
+        self.tool_bar.insertWidget(self.load_data_action, spacer)
 
-        # Create a button on the tab widget
-        # icon = qta.icon('fa.music',
-        #                 active='fa.legal',
-        #                 color='blue',
-        #                 color_active='orange')
-        # add_button = QToolButton()
-        # add_button.setIcon(icon)
-        # self.tab_widget.setCornerWidget(add_button)
+        spacer = QWidget()
+        size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(1)
+        spacer.setSizePolicy(size_policy)
+        self.tool_bar.insertWidget(self.new_plot_action, spacer)
 
-        # Create the tab item model
-        # self._data_item_model = DataListModel()
+        spacer = QWidget()
+        size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(3)
+        spacer.setSizePolicy(size_policy)
+        self.tool_bar.addWidget(spacer)
 
-        # test_button = QPushButton()
-        # self.list_view.setIndexWidget(self._data_item_model.createIndex(0, 1), test_button)
+        # Setup plugin toolbar
+        self._plugin_action_group = QActionGroup(self)
+        self.model_editor_toggle.setActionGroup(self._plugin_action_group)
+        self.statistics_toggle.setActionGroup(self._plugin_action_group)
+        self.mask_editor_toggle.setActionGroup(self._plugin_action_group)
 
-        # Set delegates
-        # self.list_view.setItemDelegate(DataItemDelegate())
-        # self.list_view.setModel(self._data_item_model)
+        # Hide the plugin dock initially
+        self.plugin_dock.hide()
 
-        # Add some new data
+        # Create a default workspace
+        self._workspace = Workspace()
+        self.setCentralWidget(self._workspace)
+
+        # Update title
+        self.setWindowTitle(self._workspace.name + " — SpecViz")
+
+
+class MainWindow(UiMainWindow):
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
 
         # Setup connections
         self.setup_connections()
 
-        # Create a default workspace
-        self.new_workspace()
-
     def setup_connections(self):
-        # Close tab when request
-        self.tab_widget.tabCloseRequested.connect(self.tab_widget.removeTab)
+        # Primary toolbar actions
+        self.new_plot_action.triggered.connect(self._on_new_plot)
+        self.load_data_action.triggered.connect(self._on_load_data)
 
-        # Update the title bar based on the current workspace
+        # Plugin toolbar actions
+        self._plugin_action_group.triggered.connect(self._on_toggle_plugin_dock)
+        self.model_editor_toggle.triggered.connect(lambda: self._on_toggle_plugin("Model Editor"))
+        self.statistics_toggle.triggered.connect(lambda: self._on_toggle_plugin("Statistics"))
+        self.mask_editor_toggle.triggered.connect(lambda: self._on_toggle_plugin("Mask Editor"))
 
-        # When new workspace button clicked, add new tab
-        self.new_action.triggered.connect(self.new_workspace)
+        self.plugin_dock.visibilityChanged.connect(self._on_plugin_dock_visbility_changed)
 
-        # When a new workspace tab is selected, change the application title
-        self.tab_widget.currentChanged.connect(self._on_tab_changed)
+    def _on_new_plot(self):
+        self._workspace.add_plot_window()
 
-    def _on_tab_changed(self, index):
-        self.tab_widget.setCurrentIndex(index)
+    def _on_load_data(self):
+        pass
 
-        # Change the application title to reflect current workspace
-        if self.tab_widget.count() == 0:
-            self.setWindowTitle("SpecViz")
+    def _on_toggle_plugin_dock(self):
+        if self._plugin_action_group.checkedAction():
+            self.plugin_dock.show()
         else:
-            self.setWindowTitle(self.tab_widget.tabText(index) + " — SpecViz")
+            self.plugin_dock.hide()
 
-    def new_workspace(self):
-        # Get count of current untitled workspaces
-        count = len([i for i in range(self.tab_widget.count())
-                     if "Untitled Workspace" in self.tab_widget.tabText(i)])
-        title = "Untitled Workspace {}".format(count) if count > 0 else "Untitled Workspace"
+    def _on_toggle_plugin(self, name):
+        self.plugin_dock.setWindowTitle(name)
 
-        # Instantiate and set workspace tab
-        workspace = Workspace(self)
-        self.tab_widget.addTab(workspace, title)
+    def _on_plugin_dock_visbility_changed(self, visible):
+        if not visible:
+            for act in self._plugin_action_group.actions():
+                act.setChecked(False)

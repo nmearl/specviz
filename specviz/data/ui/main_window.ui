@@ -14,7 +14,7 @@
    <string>SpecViz</string>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
-   <bool>true</bool>
+   <bool>false</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -22,7 +22,7 @@
      <number>0</number>
     </property>
     <property name="topMargin">
-     <number>8</number>
+     <number>0</number>
     </property>
     <property name="rightMargin">
      <number>0</number>
@@ -30,25 +30,6 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item>
-     <widget class="QTabWidget" name="tab_widget">
-      <property name="usesScrollButtons">
-       <bool>true</bool>
-      </property>
-      <property name="documentMode">
-       <bool>true</bool>
-      </property>
-      <property name="tabsClosable">
-       <bool>true</bool>
-      </property>
-      <property name="movable">
-       <bool>true</bool>
-      </property>
-      <property name="tabBarAutoHide">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menu_bar">
@@ -99,6 +80,15 @@
    <property name="movable">
     <bool>false</bool>
    </property>
+   <property name="iconSize">
+    <size>
+     <width>24</width>
+     <height>24</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
    <property name="floatable">
     <bool>false</bool>
    </property>
@@ -111,8 +101,13 @@
    <addaction name="new_action"/>
    <addaction name="open_action"/>
    <addaction name="save_action"/>
+   <addaction name="load_data_action"/>
+   <addaction name="export_data_action"/>
+   <addaction name="new_plot_action"/>
+   <addaction name="operations_action"/>
+   <addaction name="arithmetic_action"/>
   </widget>
-  <widget class="QToolBar" name="toolBar_2">
+  <widget class="QToolBar" name="plugin_tool_bar">
    <property name="windowTitle">
     <string>toolBar_2</string>
    </property>
@@ -121,6 +116,8 @@
 	background: rgb(230, 230, 230);
 	border: none;
 	border-left: 1px solid rgb(179, 179, 179);
+	padding: 5px;
+	spacing: 8px;
 }</string>
    </property>
    <property name="movable">
@@ -132,6 +129,9 @@
      <height>24</height>
     </size>
    </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
    <attribute name="toolBarArea">
     <enum>RightToolBarArea</enum>
    </attribute>
@@ -139,6 +139,29 @@
     <bool>false</bool>
    </attribute>
    <addaction name="model_editor_toggle"/>
+   <addaction name="statistics_toggle"/>
+   <addaction name="mask_editor_toggle"/>
+  </widget>
+  <widget class="QDockWidget" name="plugin_dock">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>200</width>
+     <height>38</height>
+    </size>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetClosable</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::RightDockWidgetArea</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents"/>
   </widget>
   <action name="new_action">
    <property name="icon">
@@ -177,6 +200,9 @@
    </property>
   </action>
   <action name="model_editor_toggle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="../resources.qrc">
      <normaloff>:/icons/012-file.svg</normaloff>:/icons/012-file.svg</iconset>
@@ -186,6 +212,96 @@
    </property>
    <property name="toolTip">
     <string>Show/hide the model editor interface</string>
+   </property>
+  </action>
+  <action name="load_data_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/folder-2.svg</normaloff>:/icons/folder-2.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Load Data</string>
+   </property>
+   <property name="toolTip">
+    <string>Load a data set into the current workspace</string>
+   </property>
+  </action>
+  <action name="export_data_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/inbox.svg</normaloff>:/icons/inbox.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Export Data</string>
+   </property>
+   <property name="toolTip">
+    <string>Export selected data from workspace</string>
+   </property>
+  </action>
+  <action name="new_plot_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/048-line-chart.svg</normaloff>:/icons/048-line-chart.svg</iconset>
+   </property>
+   <property name="text">
+    <string>New Plot</string>
+   </property>
+   <property name="toolTip">
+    <string>Create a new plot in the workspace</string>
+   </property>
+  </action>
+  <action name="operations_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/005-stats.svg</normaloff>:/icons/005-stats.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Operations</string>
+   </property>
+   <property name="toolTip">
+    <string>Operations to be applied to data</string>
+   </property>
+  </action>
+  <action name="arithmetic_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/014-calculator.svg</normaloff>:/icons/014-calculator.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Arithmetic</string>
+   </property>
+   <property name="toolTip">
+    <string>Perform arithmetic between data</string>
+   </property>
+  </action>
+  <action name="statistics_toggle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/015-compass-1.svg</normaloff>:/icons/015-compass-1.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Statistics</string>
+   </property>
+   <property name="toolTip">
+    <string>Show/hide the data statistics</string>
+   </property>
+  </action>
+  <action name="mask_editor_toggle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/050-mask.svg</normaloff>:/icons/050-mask.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Mask Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Show/hide the mask editor</string>
    </property>
   </action>
  </widget>

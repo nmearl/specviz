@@ -2,7 +2,10 @@ import logging
 
 import gevent
 import msgpack
+import json
 from zerorpc import Client, Puller, Pusher, Subscriber
+
+from .core.items import DataItem
 
 
 class SubscriberAPI():
@@ -11,16 +14,20 @@ class SubscriberAPI():
         self.client = Client()
         self.client.connect(client_ip)
 
-        # print(self.pusher.load_data("TEST"))
+    def data_loaded(self, identifier):
+        """
+        A message indicating that a data object has been loaded into the store
+        with the given identifier.
+        """
+        value_dict = self.client.query_data(identifier,
+                                            ['flux', 'wavelength', 'unit'])
+        value_dict = json.loads(value_dict)
+        data = DataItem(**value_dict)
 
-    def data_loaded(self, data):
-        unpacked_data = msgpack.unpackb(data)
+        print(data)
 
-    def data_unloaded(self, data):
+    def data_unloaded(self, identifier):
         pass
-
-    def testing(self, msg):
-        print("Received 'testing' call on subscriber")
 
 
 def launch(server_ip=None, client_ip=None):
@@ -39,6 +46,14 @@ def launch(server_ip=None, client_ip=None):
     logging.info(
         "Client is now sending on %s and listening on %s.",
         client_ip, server_ip)
+
+    trigger = gevent.event.Event()
+    trigger.wait(1)
+    sub_api.client.load_data(
+        "/Users/nearl/projects/specutils/specutils/tests/data/L5g_0355+11_Cruz09.fits",
+        "wcs1d-fits")
+    trigger.wait(1)
+    # print(sub_api.client.query_data('blah', ['blah']))
 
     # Attempt testing whether fuction was added to server object
     # sub_api.client.testing("This is a test on the server")
