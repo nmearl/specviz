@@ -4,6 +4,7 @@ import gevent
 import msgpack
 import json
 from zerorpc import Client, Puller, Pusher, Subscriber
+from zmq.error import ZMQError
 
 from .core.items import DataItem
 
@@ -21,10 +22,13 @@ class SubscriberAPI():
         """
         value_dict = self.client.query_data(identifier,
                                             ['flux', 'wavelength', 'unit'])
-        value_dict = json.loads(value_dict)
-        data = DataItem(**value_dict)
 
-        print(data)
+        data = DataItem(name=value_dict['name'],
+                        identifier=value_dict['identifier'],
+                        spectral_axis=['spectral_axis'],
+                        spectral_axis_unit=['spectral_axis_unit'],
+                        data=value_dict['flux'],
+                        unit=value_dict['unit'])
 
     def data_unloaded(self, identifier):
         pass
@@ -39,7 +43,11 @@ def launch(server_ip=None, client_ip=None):
     # Setup the subscriber service
     sub_api = SubscriberAPI(client_ip)
     subscriber = Subscriber(sub_api)
-    subscriber.bind(server_ip)
+
+    try:
+        subscriber.bind(server_ip)
+    except ZMQError:
+        pass
 
     gevent.spawn(subscriber.run)
 
