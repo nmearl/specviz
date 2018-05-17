@@ -62,6 +62,7 @@ class MainWindow(UiMainWindow):
 
     def setup_connections(self):
         # Primary toolbar actions
+        self.new_workspace_action.triggered.connect(lambda: MainWindow().show())
         self.new_plot_action.triggered.connect(self._on_new_plot)
         self.load_data_action.triggered.connect(self._on_load_data)
 
