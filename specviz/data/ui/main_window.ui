@@ -342,7 +342,6 @@
  </widget>
  <resources>
   <include location="../resources.qrc"/>
-  <include location="../themes/breeze.qrc"/>
  </resources>
  <connections/>
 </ui>
