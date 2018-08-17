@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -58,11 +58,6 @@
       </property>
       <property name="contextMenuPolicy">
        <enum>Qt::ActionsContextMenu</enum>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">QListView::item {
-	height: 36px;
-}</string>
       </property>
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
@@ -128,13 +123,39 @@
        </property>
       </widget>
      </widget>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="tabPosition">
+       <enum>QTabWidget::East</enum>
+      </property>
+      <property name="documentMode">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Tab 1</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Tab 2</string>
+       </attribute>
+      </widget>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
  <resources>
   <include location="../resources.qrc"/>
-  <include location="../themes/breeze.qrc"/>
  </resources>
  <connections/>
 </ui>

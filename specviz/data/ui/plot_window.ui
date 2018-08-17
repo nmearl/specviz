@@ -65,12 +65,16 @@
    </attribute>
    <addaction name="linear_region_action"/>
    <addaction name="remove_region_action"/>
-   <addaction name="plot_options_action"/>
+   <addaction name="change_color_action"/>
    <addaction name="export_plot_action"/>
   </widget>
   <action name="linear_region_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/region_add.svg</normaloff>:/icons/region_add.svg</iconset>
+   </property>
    <property name="text">
-    <string>Linear Region</string>
+    <string>Add Region</string>
    </property>
    <property name="toolTip">
     <string>Add a linear selection region</string>
@@ -93,6 +97,10 @@
    </property>
   </action>
   <action name="export_plot_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/export.svg</normaloff>:/icons/export.svg</iconset>
+   </property>
    <property name="text">
     <string>Export Plot</string>
    </property>
@@ -101,6 +109,10 @@
    </property>
   </action>
   <action name="remove_region_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/region_remove.svg</normaloff>:/icons/region_remove.svg</iconset>
+   </property>
    <property name="text">
     <string>Remove Region</string>
    </property>
@@ -108,7 +120,21 @@
     <string>Remove selected region</string>
    </property>
   </action>
+  <action name="change_color_action">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/color.svg</normaloff>:/icons/color.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Change Color</string>
+   </property>
+   <property name="toolTip">
+    <string>Change the current plot item color</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
