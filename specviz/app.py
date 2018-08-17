@@ -72,6 +72,9 @@ def start(file_path=None, loader=None, embed=None):
     # Enable hidpi icons
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
+    import qdarkstyle
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
     sys.exit(app.exec_())
 
 

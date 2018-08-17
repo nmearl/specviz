@@ -40,7 +40,7 @@ class Workspace(QWidget):
         # self.list_view.setItemDelegate(DataItemDelegate(self))
 
         # Don't expand mdiarea tabs
-        self.mdi_area.findChild(QTabBar).setExpanding(True)
+        # self.mdi_area.findChild(QTabBar).setExpanding(False)
 
         # When the current subwindow changes, mount that subwindow's proxy model
         self.mdi_area.subWindowActivated.connect(self._on_sub_window_activated)

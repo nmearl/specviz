@@ -19,6 +19,9 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <property name="leftMargin">
@@ -38,13 +41,6 @@
   <widget class="QToolBar" name="tool_bar">
    <property name="windowTitle">
     <string>Plot Tool Bar</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QToolBar {
-	border: none;
-	background: rgb(230, 230, 230);
-	border-bottom: 1px solid rgb(179, 179, 179);
-}</string>
    </property>
    <property name="movable">
     <bool>false</bool>
