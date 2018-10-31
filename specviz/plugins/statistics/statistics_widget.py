@@ -116,6 +116,16 @@ class StatisticsWidget(QWidget):
             'total': self.count_total_text_edit
         }
 
+        # Set ui line height based on the current platform's qfont info
+        for widget in self.stat_widgets.values():
+            doc = widget.document()
+            fm = widget.fontMetrics()
+            margins = widget.contentsMargins()
+            n_height = (fm.lineSpacing() +
+                        (doc.documentMargin() + widget.frameWidth()) * 2 +
+                        margins.top() + margins.bottom())
+            widget.setFixedHeight(n_height)
+
     def _connect_plot_window(self, plot_window):
         plot_window.plot_widget.plot_added.connect(self.update_statistics)
         plot_window.plot_widget.plot_removed.connect(self.update_statistics)
