@@ -56,6 +56,9 @@ class ModelEditor(QWidget):
         self.hub.workspace.current_selected_changed.connect(
             self._on_plot_item_selected)
 
+        # Connect the fit model button
+        self.fit_button.clicked.connect(self._on_fit_clicked)
+
     @plugin.tool_bar(name="New Model", icon=QIcon(":/icons/012-file.svg"))
     def on_new_model_triggered(self):
         self._on_create_new_model()
@@ -157,16 +160,28 @@ class ModelEditor(QWidget):
         for i in range(0, 3):
             self.model_tree_view.resizeColumnToContents(i)
 
-    def _on_fit_clicked(self, model_plot_data_item):
-        fit_mod = fit_lines(self.hub.data_item.spectrum, result)
-        flux = fit_mod(self.hub.data_item.spectrum.spectral_axis)
+    def _on_fit_clicked(self, spectrum_data_item=None):
+        # The spectrum_data_item would be the data item that this model is to
+        # be fit to. If none, just pick one that's being plotted.
+        if spectrum_data_item is None:
+            spectrum_data_item = next([x for x in self.hub.proxy_model.items
+                                       if x.visible and not isinstance(x.data_item, ModelDataItem)], None)
+        print(spectrum_data_item)
+        spectrum_data_item = [x for x in self.hub.proxy_model.items
+                              if x.visible and not isinstance(x.data_item, ModelDataItem)][0]
+        # Grab the currntly selected plot data item from the data list
+        plot_data_item = self.hub.plot_item
 
-        new_spec = Spectrum1D(flux=flux,
-                              spectral_axis=self.hub.data_item.spectrum.spectral_axis)
-        # self.hub.model.add_data(new_spec, "Fitted Model Spectrum")
+        # If this item is not a model data item, bail
+        if not isinstance(plot_data_item.data_item, ModelDataItem):
+            return
 
-        # Update the stored plot data item object for this model editor model
-        # self._model_editor_model.plot_data_item.data_item.set_data(new_spec)
+        # Compose the compound model from the model editor sub model tree view
+        model_editor_model = plot_data_item.data_item.model_editor_model
+        result = model_editor_model.evaluate()
+
+        # Run the compound model through the specutils fitting routine
+        fit_mod = fit_lines(spectrum_data_item.data_item.spectrum, result)
 
         # Fitted quantity models do not preserve the names of the sub models
         # which are used to relate the fitted sub models back to the displayed
@@ -180,6 +195,7 @@ class ModelEditor(QWidget):
             fit_mod.unitless_model.name = result.name
             sub_mods = [fit_mod.unitless_model]
 
+        # Get a list of the displayed name for each sub model in the tree view
         disp_mods = {item.text(): item for item in model_editor_model.items}
 
         for i, sub_mod in enumerate(sub_mods):
@@ -198,8 +214,10 @@ class ModelEditor(QWidget):
 
                 model_item.child(cidx, 1).setText("{:.4g}".format(parameter.value))
                 model_item.child(cidx, 1).setData(parameter.value, Qt.UserRole + 1)
-
                 model_item.child(cidx, 3).setData(parameter.fixed, Qt.UserRole + 1)
 
         for i in range(0, 3):
             self.model_tree_view.resizeColumnToContents(i)
+
+        # Update the displayed data on the plot
+        plot_data_item.set_data()

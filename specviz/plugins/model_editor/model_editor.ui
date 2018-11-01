@@ -166,6 +166,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QToolButton" name="fit_button">
+             <property name="text">
+              <string>Fit Model</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="horizontalSpacer">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
