@@ -156,8 +156,6 @@ class PlotWidget(pg.PlotWidget):
     roi_removed = Signal(LinearRegionItem)
 
     mouse_enterexit = Signal(QEvent.Type)
-    dismiss_linelists_window = Signal(bool)
-    erase_linelabels = Signal(pg.PlotWidget)
 
     def __init__(self, title=None, model=None, visible=True, *args, **kwargs):
         super(PlotWidget, self).__init__(*args, **kwargs)
@@ -211,7 +209,7 @@ class PlotWidget(pg.PlotWidget):
 
         self.plot_added.connect(self.check_plot_compatibility)
         self.plot_removed.connect(self.check_plot_compatibility)
-        self.dismiss_linelists_window.connect(self._dismiss_linelists_window)
+        # self.dismiss_linelists_window.connect(self._dismiss_linelists_window)
 
     @property
     def title(self):
@@ -563,6 +561,7 @@ class PlotWidget(pg.PlotWidget):
         self._region_text_item.setText("")
         self.roi_removed.emit(roi)
 
+    # -------- Used by line labels plotter.
     def list_all_regions(self):
         """Get all region items in plot"""
         regions = []
@@ -604,14 +603,14 @@ class PlotWidget(pg.PlotWidget):
     #     else:
     #         return
 
-    def _set_selection_state(self, window):
-        self._is_selected = window == self
-
-        if self.linelist_window:
-            if self._is_selected:
-                self.linelist_window.show()
-            else:
-                self.linelist_window.hide()
+    # def _set_selection_state(self, window):
+    #     self._is_selected = window == self
+    #
+    #     if self.linelist_window:
+    #         if self._is_selected:
+    #             self.linelist_window.show()
+    #         else:
+    #             self.linelist_window.hide()
 
     # def _show_linelists_window(self, *args, **kwargs):
     #     if self._is_selected:
@@ -627,11 +626,11 @@ class PlotWidget(pg.PlotWidget):
     #
     #         self.linelist_window.show()
 
-    def _dismiss_linelists_window(self, close, **kwargs):
-        if self._is_selected and self.linelist_window:
-            if close:
-                self.linelist_window.close()
-                self.line_labels_plotter = None
-                self.linelist_window = None
-            else:
-                self.linelist_window.hide()
+    # def _dismiss_linelists_window(self, close, **kwargs):
+    #     if self._is_selected and self.linelist_window:
+    #         if close:
+    #             self.linelist_window.close()
+    #             self.line_labels_plotter = None
+    #             self.linelist_window = None
+    #         else:
+    #             self.linelist_window.hide()
