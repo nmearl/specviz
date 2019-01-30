@@ -103,7 +103,7 @@ def _createLineListPane(linelist, table_model, caller):
 # line list widget storage.
 linelists_windows = {}
 
-@plugin.plugin_bar("Line labels", icon=QIcon(os.path.join(ICON_PATH, "Label-48.png")))
+@plugin.plugin_bar("Line labels", icon=QIcon(":/icons/005-stats.svg"))
 class LineListsPlugin(QWidget):
 
     def __init__(self, *args, **kwargs):
