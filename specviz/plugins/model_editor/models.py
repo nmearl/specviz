@@ -3,6 +3,7 @@ from asteval import Interpreter
 
 import astropy.units as u
 from astropy.modeling import models
+from specutils.utils import QuantityModel
 from qtpy.QtCore import QSortFilterProxyModel, Qt, Signal
 from qtpy.QtGui import QStandardItem, QStandardItemModel, QValidator
 
@@ -85,6 +86,9 @@ class ModelFittingModel(QStandardItemModel):
                                             if param_unit is not None else param_value)
                 model_kwargs.get('fixed').setdefault(param_name, param_fixed)
 
+            if isinstance(model, QuantityModel):
+                model = model.unitless_model
+
             new_model = model.__class__(*model_args, **model_kwargs)
             fittable_models[model_name] = new_model
 
@@ -112,12 +116,13 @@ class ModelFittingModel(QStandardItemModel):
         :class:`qtpy.QtCore.QModelIndex`
             The index in the Qt model where the new model been added.
         """
-        model_name = model.__class__.name
+        model_name = model.name or model.__class__.name
 
         model_count = len([self.item(idx) for idx in range(self.rowCount())
-                           if model.__class__.name in self.item(idx).text()])
+                           if model_name in self.item(idx).text()])
 
-        model_name = model_name + str(model_count) if model_count > 0 else model_name
+        model_name = model_name + "_" + str(model_count) \
+            if model_count > 0 else model_name
 
         model_item = QStandardItem(model_name)
         model_item.setData(model, Qt.UserRole + 1)
@@ -172,7 +177,7 @@ class ModelFittingModel(QStandardItemModel):
 
         # Remove the model name from the equation
         self.equation = re.sub(
-            "(\+|-|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\))*\s*?({})".format(
+            "(\+|-|\*|\/|=|>|<|>=|<=|&|\||%|!|\^|\(|\))*\s*?({})(\s|$)".format(
                 model_item.text()),
             "", self._equation)
 
