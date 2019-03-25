@@ -1,15 +1,17 @@
 import os
 import pickle
 import uuid
+import logging
 
 import numpy as np
-from astropy.modeling import fitting, models, optimizers
-from qtpy.QtCore import Qt
+from astropy.modeling import fitting, models, optimizers, Fittable1DModel
+from qtpy.QtCore import Qt, QThread, Signal
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (QAction, QDialog, QFileDialog, QInputDialog, QMenu,
                             QMessageBox, QToolButton, QWidget)
 from qtpy.uic import loadUi
 from specutils.fitting import fit_lines
+from specutils.utils import QuantityModel
 from specutils.manipulation.utils import excise_regions
 from specutils.spectra import Spectrum1D
 
@@ -73,6 +75,9 @@ class ModelEditor(QWidget):
             action = QAction(k, models_menu)
             action.triggered.connect(lambda x, m=v: self._add_fittable_model(m))
             models_menu.addAction(action)
+
+        self.fit_model_thread = FitModelThread()
+        self.fit_model_thread.result.connect(self._fit_model_result)
 
         # Initially hide the model editor tools until user has selected an
         # editable model spectrum object
@@ -184,8 +189,13 @@ class ModelEditor(QWidget):
 
             # If removing the model resulted in an invalid arithmetic equation,
             # force open the arithmetic editor so the user can fix it.
-            if self.model_tree_view.model().equation and self.model_tree_view.model().evaluate() is None:
+            if len(self.model_tree_view.model().items) > 0 and \
+                self.model_tree_view.model().equation and \
+                self.model_tree_view.model().evaluate() is None:
                 self._on_equation_edit_button_clicked()
+
+            # # Re-evaluation model
+            self.hub.plot_item.set_data()
 
     def _save_models(self, filename):
         model_editor_model = self.hub.plot_item.data_item.model_editor_model
@@ -476,54 +486,48 @@ class ModelEditor(QWidget):
             plot_data_item.spectral_axis_unit)
         spectrum = spectrum.new_flux_unit(plot_data_item.data_unit)
 
-        fit_mod = fit_lines(spectrum, result, fitter=fitter(),
-                            window=spectral_region, **kwargs)
+        # Setup the thread and begin execution.
+        self.fit_model_thread(spectrum=spectrum,
+                              model=result,
+                              fitter=fitter(),
+                              window=spectral_region,
+                              output_formatter=output_formatter)
+        self.fit_model_thread.start()
 
-        if fit_mod is None:
+    def _fit_model_result(self, kwargs):
+        # The results are passed back as a dictionary. This oviates the need
+        # to specifiy type in the ``Signal`` attribute of the thread, which
+        # would be problemation because specutils make return a ``QuantityModel``
+        # which is not an astropy model subclass.
+        spectrum, result, fit_mod, output_formatter = (kwargs.get('spectrum'),
+                                                       kwargs.get('model'),
+                                                       kwargs.get('fit_mod'),
+                                                       kwargs.get('output_formatter'))
+
+        if fit_mod is None or result is None:
+            logging.error("Fitted model result is `None`.")
             return
 
-        # Fitted quantity models do not preserve the names of the sub models
-        # which are used to relate the fitted sub models back to the displayed
-        # models in the model editor. Go through and hope that their order is
-        # preserved.
+        plot_data_item = self.hub.plot_item
+        model_editor_model = plot_data_item.data_item.model_editor_model
 
-        # TODO: Uncomment for when specutils function is working with units
-        # if result.n_submodels() > 1:
-        #     for i, x in enumerate(result):
-        #         fit_mod.unitless_model._submodels[i].name = x.name
-        #     sub_mods = [x for x in fit_mod.unitless_model]
-        # else:
-        #     fit_mod.unitless_model.name = result.name
-        #     sub_mods = [fit_mod.unitless_model]
+        model_editor_model.clear()
+        model_editor_model.reset_equation()
 
         if result.n_submodels() > 1:
-            sub_mods = [x for x in fit_mod._submodels]
+            if isinstance(fit_mod, QuantityModel):
+                sub_mods = [x for x in fit_mod.unitless_model]
+            else:
+                sub_mods = [x for x in fit_mod]
+
             for i, x in enumerate(result):
-                fit_mod._submodels[i].name = x.name
+                sub_mods[i].name = x.name
         else:
             fit_mod.name = result.name
             sub_mods = [fit_mod]
 
-        # Get a list of the displayed name for each sub model in the tree view
-        disp_mods = {item.text(): item for item in model_editor_model.items}
-
-        for i, sub_mod in enumerate(sub_mods):
-            # Get the base astropy model object
-            model_item = disp_mods.get(sub_mod.name)
-
-            # For each of the children `StandardItem`s, parse out their
-            # individual stored values
-            for cidx in range(model_item.rowCount()):
-                param_name = model_item.child(cidx, 0).data()
-
-                if result.n_submodels() > 1:
-                    parameter = getattr(fit_mod, "{0}_{1}".format(param_name, i))
-                else:
-                    parameter = getattr(fit_mod, param_name)
-
-                model_item.child(cidx, 1).setText(output_formatter.format(parameter.value))
-                model_item.child(cidx, 1).setData(parameter.value, Qt.UserRole + 1)
-                model_item.child(cidx, 3).setData(parameter.fixed, Qt.UserRole + 1)
+        for mod in sub_mods:
+            self._add_model(mod)
 
         for i in range(0, 4):
             self.model_tree_view.resizeColumnToContents(i)
@@ -639,3 +643,64 @@ class ModelAdvancedSettingsDialog(QDialog):
         Closes the dialog without apply user settings to the fitter.
         """
         self.close()
+
+
+class FitModelThread(QThread):
+    """
+    QThread for running the model fitting operations in a separate thread from
+    the GUI.
+    """
+    status = Signal(str, int)
+    result = Signal(dict)
+
+    def __init__(self, parent=None):
+        super(FitModelThread, self).__init__(parent)
+
+        self.spectrum = None
+        self.model = None
+        self.fitter = None
+        self.window = None
+        self.output_formatter = None
+
+    def __call__(self, spectrum, model, fitter, window=None, output_formatter=None):
+        """
+        QThread should persist as an attached instance on a QObject class. To
+        run a thread, we overload the call dunder method.
+
+        Parameters
+        ----------
+        spectrum : :class:`~specutils.Spectrum1D`
+            The spectrum data class to which the model will be fit.
+        model : :class:`~astropy.modeling.models.Fittable1DModel`
+            The model to be fit to the data.
+        fitter : :class:`~astropy.modeling.fitting.Fitter`
+            The fitter used in fitting the model to the data.
+        window : :class:`~specutils.spectra.spectral_region.SpectralRegion`
+            The spectral region class used to excise the particular portion of
+            the data used in the model fitting.
+        output_formatter : str
+            The format of the data to be passed to the method updating
+            displayed units in the GUI.
+        """
+        self.spectrum = spectrum
+        self.model = model
+        self.fitter = fitter
+        self.window = window
+        self.output_formatter = output_formatter
+
+    def run(self):
+        """
+        Implicitly called when the thread is started. Performs the operation.
+        """
+        self.status.emit("Fitting model...", 0)
+
+        fit_mod = fit_lines(self.spectrum, self.model, fitter=self.fitter,
+                            window=self.window)
+
+        if not self.fitter.fit_info.get('message', ""):
+            self.status.emit("Fit completed successfully!", 5000)
+        else:
+            self.status.emit("Fit completed, but with warnings.", 5000)
+
+        self.result.emit({'spectrum': self.spectrum, 'model': self.model,
+                          'fit_mod': fit_mod, 'output_formatter': self.output_formatter})

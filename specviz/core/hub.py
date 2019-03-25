@@ -10,6 +10,7 @@ from .items import DataItem
 
 __all__ = ['Hub']
 
+
 class Hub:
     """
     API for accessing the core specviz functions. This acts as a centralized
