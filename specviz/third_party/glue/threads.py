@@ -1,4 +1,5 @@
 from qtpy.QtCore import QThread, Signal
+import abc
 
 
 class OperationThread(QThread):
@@ -16,13 +17,19 @@ class OperationThread(QThread):
     """
     status = Signal(float)
     finished = Signal(object, str)
+    log = Signal(str)
 
-    def __init__(self, data, function, parent=None):
+    def __init__(self, parent=None):
         super(OperationThread, self).__init__(parent)
+
+        self._data = None
+        self._function = None
+
+    def __call__(self, data, function):
         self._data = data
         self._function = function
         self._tracker = SimpleProgressTracker(self._data.shape[1] * self._data.shape[2],
-                                              status=self.status)
+                                              update=self._on_tracker_update)
 
     def run(self):
         """Run the thread."""
@@ -37,8 +44,11 @@ class OperationThread(QThread):
         """
         self._tracker.abort()
 
+    def _on_tracker_update(self, value):
+        self.status.emit(value)
 
-class SimpleProgressTracker():
+
+class SimpleProgressTracker:
     """
     Simple container object to track the progress of an operation occuring in a
     :class:`~qtpyt.QtCore.QThread` instance. It is designed to be passed to
@@ -51,17 +61,17 @@ class SimpleProgressTracker():
         The maximum value of the progress.
     """
 
-    def __init__(self, total_value, status=None):
+    def __init__(self, total_value, update=None):
         self._current_value = 0.0
         self._total_value = total_value
         self._abort_flag = False
-        self._status = status
+        self._update = update
 
     def __call__(self, value=None):
         self._current_value = value or self._current_value + 1
 
-        if self._status is not None:
-            self._status.emit(self.percent_value)
+        if self._update is not None:
+            self._update(self.percent_value)
 
         if self._abort_flag:
             raise Exception("Process aborted.")
