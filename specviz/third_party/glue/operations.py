@@ -1,11 +1,11 @@
-from .operation_handler import SpectralOperationHandler
-import numpy as np
 import logging
-from qtpy.QtWidgets import QMessageBox
-from astropy.modeling.fitting import LevMarLSQFitter
-from ...core.operations import FunctionalOperation
-from .threads import OperationThread
 
+import numpy as np
+from astropy.modeling.fitting import LevMarLSQFitter
+from qtpy.QtWidgets import QMessageBox
+
+from .operation_handler import SpectralOperationHandler
+from ...core.operations import FunctionalOperation
 
 __all__ = ['simple_linemap', 'fitted_linemap', 'fit_spaxels',
            'spectral_smoothing']

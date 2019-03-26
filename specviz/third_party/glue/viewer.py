@@ -5,13 +5,10 @@
 # Writing a custom viewer for glue with Qt
 # http://docs.glueviz.org/en/latest/customizing_guide/qt_viewer.html
 
-import logging
 import os
 from collections import OrderedDict
 
 import astropy.units as u
-import numpy as np
-from astropy.modeling.fitting import LevMarLSQFitter
 from glue.core import Component, Data
 from glue.core.coordinates import coordinates_from_header
 from glue.core.data_combo_helper import ComponentIDComboHelper
@@ -24,17 +21,17 @@ from glue.viewers.common.layer_artist import LayerArtist
 from glue.viewers.common.qt.data_viewer import DataViewer
 from glue.viewers.common.state import LayerState, ViewerState
 from pyqtgraph import InfiniteLine
-from qtpy.QtCore import Qt, QSize
+from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QColor, QIcon
 from qtpy.QtWidgets import (QAction, QMdiArea, QMenu, QMessageBox, QToolButton,
-                            QWidget, QWidgetAction, QLabel)
+                            QWidget)
 
-from .operation_handler import SpectralOperationHandler
+from .operations import (fit_spaxels, fitted_linemap, simple_linemap,
+                         spectral_smoothing)
 from .utils import glue_data_has_spectral_axis, glue_data_to_spectrum1d
 from ...app import Application
 from ...core.hub import Hub
 from ...widgets.workspace import Workspace
-from .operations import simple_linemap, fitted_linemap, fit_spaxels, spectral_smoothing
 
 __all__ = ['SpecvizDataViewer']
 

@@ -1,5 +1,4 @@
 from qtpy.QtCore import QThread, Signal
-import abc
 
 
 class OperationThread(QThread):

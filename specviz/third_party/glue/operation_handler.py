@@ -1,12 +1,11 @@
 import os
-import numpy as np
-import logging
 
+import numpy as np
+from glue.core import Component, Data, Subset
+from glue.core.coordinates import WCSCoordinates
 from qtpy.QtWidgets import QDialog, QDialogButtonBox
 from qtpy.uic import loadUi
 from spectral_cube import BooleanArrayMask, SpectralCube
-from glue.core import Subset, Data, Component
-from glue.core.coordinates import WCSCoordinates
 
 from .threads import OperationThread
 
