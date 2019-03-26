@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import logging
 
 from qtpy.QtWidgets import QDialog, QDialogButtonBox
 from qtpy.uic import loadUi
@@ -38,6 +39,11 @@ class SpectralOperationHandler(QDialog):
         self._operation_thread = None
         self._layout = layout
         self._ui_settings = ui_settings
+
+        self._operation_thread = OperationThread()
+        self._operation_thread.finished.connect(self.on_finished)
+        self._operation_thread.status.connect(self.on_status_updated)
+        self._operation_thread.log.connect(lambda x: print(x))
 
         self.setup_ui()
         self.setup_connections()
@@ -136,15 +142,15 @@ class SpectralOperationHandler(QDialog):
         self.button_box.button(QDialogButtonBox.Cancel).setEnabled(False)
 
         if self._func_proxy is not None:
-            op_func = lambda *args, **kwargs: self._func_proxy(self._function, *args, **kwargs)
+            op_func = lambda *args, **kwargs: self._func_proxy(self._function,
+                                                               *args, **kwargs)
         else:
             op_func = self._function
 
-        self._operation_thread = OperationThread(self._compose_cube(), op_func)
-
-        self._operation_thread.finished.connect(self.on_finished)
-        self._operation_thread.status.connect(self.on_status_updated)
+        self._operation_thread(self._compose_cube(), op_func)
         self._operation_thread.start()
+        # data, unit = op_func(self._compose_cube(), None)
+        # self.on_finished(data, unit)
 
     def on_aborted(self):
         """Called when the user aborts the operation."""
