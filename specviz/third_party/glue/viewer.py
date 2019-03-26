@@ -33,8 +33,8 @@ from .operation_handler import SpectralOperationHandler
 from .utils import glue_data_has_spectral_axis, glue_data_to_spectrum1d
 from ...app import Application
 from ...core.hub import Hub
-from ...core.operations import FunctionalOperation
 from ...widgets.workspace import Workspace
+from .operations import simple_linemap, fitted_linemap, fit_spaxels, spectral_smoothing
 
 __all__ = ['SpecvizDataViewer']
 
@@ -432,21 +432,21 @@ class SpecvizDataViewer(DataViewer):
             menu.addSection("2D Operations")
 
             act = QAction("Simple Linemap", self)
-            act.triggered.connect(self._create_simple_linemap)
+            act.triggered.connect(lambda: simple_linemap(self))
             menu.addAction(act)
 
             act = QAction("Fitted Linemap", self)
-            act.triggered.connect(self._create_fitted_linemap)
+            act.triggered.connect(lambda: fitted_linemap(self))
             menu.addAction(act)
 
             menu.addSection("3D Operations")
 
             act = QAction("Fit Spaxels", self)
-            act.triggered.connect(self._fit_spaxels)
+            act.triggered.connect(lambda: fit_spaxels(self))
             menu.addAction(act)
 
             act = QAction("Spectral Smoothing", self)
-            act.triggered.connect(self._spectral_smoothing)
+            act.triggered.connect(lambda: spectral_smoothing(self))
             menu.addAction(act)
 
     def update_units(self, spectral_axis_unit=None, data_unit=None):
@@ -479,185 +479,3 @@ class SpecvizDataViewer(DataViewer):
             self._slice_indicator.blockSignals(True)
             self._slice_indicator.setPos(u.Quantity(pos).value)
             self._slice_indicator.blockSignals(False)
-
-    def _create_simple_linemap(self):
-        def threadable_function(data, tracker):
-            out = np.empty(shape=data.shape[1:])
-            mask = self.hub.region_mask
-
-            for x in range(data.shape[1]):
-                for y in range(data.shape[2]):
-                    out[x, y] = np.sum(data[:, x, y][mask])
-                    tracker()
-
-            return out, data.meta.get('unit')
-
-        spectral_operation = SpectralOperationHandler(
-            data=self.layers[0].state.layer,
-            function=threadable_function,
-            operation_name="Simple Linemap",
-            component_id=self.layers[0].state.attribute,
-            layout=self._layout,
-            ui_settings={
-                'title': "Simple Linemap",
-                'group_box_title': "Choose the component to use for linemap "
-                                   "generation",
-                'description': "Sums the values of the chosen component in the "
-                               "range of the current ROI in the spectral view "
-                               "for each spectrum in the data cube."})
-
-        spectral_operation.exec_()
-
-    def _create_fitted_linemap(self):
-        # Check to see if the model fitting plugin is loaded
-        model_editor_plugin = self.current_workspace._plugin_bars.get("Model Editor")
-
-        if model_editor_plugin is None:
-            logging.error("Model editor plugin is not loaded.")
-            return
-
-        if (model_editor_plugin.model_tree_view.model() is None or
-                model_editor_plugin.model_tree_view.model().evaluate() is None):
-            QMessageBox.warning(self,
-                                "No evaluable model.",
-                                "There is currently no model or the created "
-                                "model is empty. Unable to perform fitted "
-                                "linemap operation.")
-            return
-
-        def threadable_function(data, tracker):
-            out = np.empty(shape=data.shape[1:])
-            mask = self.hub.region_mask
-
-            spectral_axis = self.hub.plot_item.spectral_axis
-            model = model_editor_plugin.model_tree_view.model().evaluate()
-
-            for x in range(data.shape[1]):
-                for y in range(data.shape[2]):
-                    flux = data[:, x, y].value
-
-                    fitter = LevMarLSQFitter()
-                    fit_model = fitter(model,
-                                       spectral_axis[mask],
-                                       flux[mask])
-
-                    new_data = fit_model(spectral_axis)
-
-                    out[x, y] = np.sum(new_data[mask])
-
-                    tracker()
-
-            return out, data.meta.get('unit')
-
-        spectral_operation = SpectralOperationHandler(
-            data=self.layers[0].state.layer,
-            function=threadable_function,
-            operation_name="Fitted Linemap",
-            component_id=self.layers[0].state.attribute,
-            layout=self._layout,
-            ui_settings={
-                'title': "Fitted Linemap",
-                'group_box_title': "Choose the component to use for linemap "
-                                   "generation",
-                'description': "Fits the current model to the values of the "
-                               "chosen component in the range of the current "
-                               "ROI in the spectral view for each spectrum in "
-                               "the data cube."})
-
-        spectral_operation.exec_()
-
-    def _fit_spaxels(self):
-        # Check to see if the model fitting plugin is loaded
-        model_editor_plugin = self.current_workspace._plugin_bars.get("Model Editor")
-
-        if model_editor_plugin is None:
-            logging.error("Model editor plugin is not loaded.")
-            return
-
-        if (model_editor_plugin.model_tree_view.model() is None or
-                model_editor_plugin.model_tree_view.model().evaluate() is None):
-            QMessageBox.warning(self,
-                                "No evaluable model.",
-                                "There is currently no model or the created "
-                                "model is empty. Unable to perform fitted "
-                                "linemap operation.")
-            return
-
-        def threadable_function(data, tracker):
-            out = np.empty(shape=data.shape)
-            mask = self.hub.region_mask
-
-            spectral_axis = self.hub.plot_item.spectral_axis
-            model = model_editor_plugin.model_tree_view.model().evaluate()
-
-            for x in range(data.shape[1]):
-                for y in range(data.shape[2]):
-                    flux = data[:, x, y].value
-
-                    fitter = LevMarLSQFitter()
-                    fit_model = fitter(model,
-                                       spectral_axis[mask],
-                                       flux[mask])
-
-                    new_data = fit_model(spectral_axis)
-
-                    out[:, x, y] = np.sum(new_data[mask])
-
-                    tracker()
-
-            return out, data.meta.get('unit')
-
-        spectral_operation = SpectralOperationHandler(
-            data=self.layers[0].state.layer,
-            function=threadable_function,
-            operation_name="Fit Spaxels",
-            component_id=self.layers[0].state.attribute,
-            layout=self._layout,
-            ui_settings={
-                'title': "Fit Spaxel",
-                'group_box_title': "Choose the component to use for spaxel "
-                                   "fitting",
-                'description': "Fits the current model to the values of the "
-                               "chosen component in the range of the current "
-                               "ROI in the spectral view for each spectrum in "
-                               "the data cube."})
-
-        spectral_operation.exec_()
-
-    def _spectral_smoothing(self):
-        def threadable_function(func, data, tracker, **kwargs):
-            out = np.empty(shape=data.shape)
-
-            for x in range(data.shape[1]):
-                for y in range(data.shape[2]):
-                    out[:, x, y] = func(data[:, x, y],
-                                        data.spectral_axis)
-                    tracker()
-
-            return out, data.meta.get('unit')
-
-        stack = FunctionalOperation.operations()[::-1]
-
-        if len(stack) == 0:
-            QMessageBox.warning(self,
-                                "No smoothing in history.",
-                                "To apply a smoothing operation to the entire "
-                                "cube, first do a local smoothing operation "
-                                "(Operations > Smoothing). Once done, the "
-                                "operation can then be performed over the "
-                                "entire cube.")
-            return
-
-        spectral_operation = SpectralOperationHandler(
-            data=self.layers[0].state.layer,
-            func_proxy=threadable_function,
-            stack=stack,
-            component_id=self.layers[0].state.attribute,
-            layout=self._layout,
-            ui_settings={
-                'title': "Spectral Smoothing",
-                'group_box_title': "Choose the component to smooth.",
-                'description': "Performs a previous smoothing operation over "
-                               "the selected component for the entire cube."})
-
-        spectral_operation.exec_()
