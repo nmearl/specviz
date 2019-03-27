@@ -1,11 +1,11 @@
-from qtpy.QtCore import QThread, Signal
+from qtpy.QtCore import Signal, QObject
 
 
-class OperationThread(QThread):
+class OperationWorker(QObject):
     """
-    Thread in which an operation is performed on some
+    Worker in which an operation is performed on some
     :class:`~spectral_cube.SpectralCube` object to ensure that the UI does not
-    freeze while the operation is running.
+    freeze while the operation is running. This is called inside a QThread.
 
     Attributes
     ----------
@@ -15,16 +15,11 @@ class OperationThread(QThread):
         The function-like callable used to perform the operation on the cube.
     """
     status = Signal(float)
-    finished = Signal(object, str)
+    result = Signal(object, str)
     log = Signal(str)
 
-    def __init__(self, parent=None):
-        super(OperationThread, self).__init__(parent)
-
-        self._data = None
-        self._function = None
-
-    def __call__(self, data, function):
+    def __init__(self, data, function, parent=None):
+        super(OperationWorker, self).__init__(parent)
         self._data = data
         self._function = function
         self._tracker = SimpleProgressTracker(self._data.shape[1] * self._data.shape[2],
@@ -34,7 +29,7 @@ class OperationThread(QThread):
         """Run the thread."""
         new_data, unit = self._function(self._data, self._tracker)
 
-        self.finished.emit(new_data, unit)
+        self.result.emit(new_data, unit)
 
     def abort(self):
         """

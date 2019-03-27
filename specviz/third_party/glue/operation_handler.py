@@ -5,9 +5,10 @@ from glue.core import Component, Data, Subset
 from glue.core.coordinates import WCSCoordinates
 from qtpy.QtWidgets import QDialog, QDialogButtonBox
 from qtpy.uic import loadUi
+from qtpy.QtCore import QThread, Signal
 from spectral_cube import BooleanArrayMask, SpectralCube
 
-from .threads import OperationThread
+from .workers import OperationWorker
 
 
 class SpectralOperationHandler(QDialog):
@@ -39,10 +40,7 @@ class SpectralOperationHandler(QDialog):
         self._layout = layout
         self._ui_settings = ui_settings
 
-        self._operation_thread = OperationThread()
-        self._operation_thread.finished.connect(self.on_finished)
-        self._operation_thread.status.connect(self.on_status_updated)
-        self._operation_thread.log.connect(lambda x: print(x))
+        self._op_thread = None
 
         self.setup_ui()
         self.setup_connections()
@@ -146,14 +144,23 @@ class SpectralOperationHandler(QDialog):
         else:
             op_func = self._function
 
-        self._operation_thread(self._compose_cube(), op_func)
-        self._operation_thread.start()
+        op_worker = OperationWorker(self._compose_cube(), op_func)
+
+        self._op_thread = QThread(parent=self.parent())
+        op_worker.moveToThread(self._op_thread)
+
+        op_worker.result.connect(self.on_finished)
+        op_worker.status.connect(self.on_status_updated)
+
+        self._op_thread.started.connect(op_worker.run)
+        self._op_thread.start()
+
         # data, unit = op_func(self._compose_cube(), None)
         # self.on_finished(data, unit)
 
     def on_aborted(self):
         """Called when the user aborts the operation."""
-        self._operation_thread.abort()
+        self._op_thread.terminate()
         self.progress_bar.setValue(0)
 
         # Hide the progress bar and abort button
@@ -207,4 +214,5 @@ class SpectralOperationHandler(QDialog):
             component = Component(data, units=unit)
             self._data.add_component(component, component_name)
 
+        self._op_thread.exit()
         super(SpectralOperationHandler, self).accept()
