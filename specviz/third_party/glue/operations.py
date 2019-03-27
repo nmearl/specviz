@@ -69,15 +69,16 @@ def fitted_linemap(viewer):
             for y in range(data.shape[2]):
                 flux = data[:, x, y].value
 
-                fit_model = LevMarLSQFitter()(model,
+                fit_model = fitter(model,
                                    spectral_axis[mask],
                                    flux[mask])
 
-                new_data = fit_model(spectral_axis)
+                new_data = fit_model(spectral_axis[mask])
 
-                out[x, y] = np.sum(new_data[mask])
+                out[x, y] = np.sum(new_data)
 
-                tracker()
+                if tracker is not None:
+                    tracker()
 
         return out, data.meta.get('unit')
 
@@ -128,14 +129,13 @@ def fit_spaxels(viewer):
         out = np.empty(shape=data.shape)
         fitter = LevMarLSQFitter()
 
-
         for x in range(data.shape[1]):
             for y in range(data.shape[2]):
                 flux = data[:, x, y].value
 
                 fit_model = fitter(model,
-                                spectral_axis[mask],
-                                flux[mask])
+                                   spectral_axis[mask],
+                                   flux[mask])
 
                 new_data = fit_model(spectral_axis[mask])
 
@@ -166,13 +166,14 @@ def fit_spaxels(viewer):
             'description': "Fits the current model to the values of the "
                             "chosen component in the range of the current "
                             "ROI in the spectral view for each spectrum in "
-                            "the data cube."})
+                            "the data cube."},
+        parent=viewer)
 
     spectral_operation.exec_()
 
 
 def spectral_smoothing(viewer):
-    def threadable_function(func, data, tracker, **kwargs):
+    def threadable_function(func, data, tracker):
         out = np.empty(shape=data.shape)
 
         for x in range(data.shape[1]):
@@ -208,6 +209,7 @@ def spectral_smoothing(viewer):
             'title': "Spectral Smoothing",
             'group_box_title': "Choose the component to smooth.",
             'description': "Performs a previous smoothing operation over "
-                            "the selected component for the entire cube."})
+                            "the selected component for the entire cube."},
+        parent=viewer)
 
     spectral_operation.exec_()
