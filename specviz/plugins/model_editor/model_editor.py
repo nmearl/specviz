@@ -76,8 +76,7 @@ class ModelEditor(QWidget):
             action.triggered.connect(lambda x, m=v: self._add_fittable_model(m))
             models_menu.addAction(action)
 
-        self.fit_model_thread = FitModelThread()
-        self.fit_model_thread.result.connect(self._fit_model_result)
+        self.fit_model_thread = None
 
         # Initially hide the model editor tools until user has selected an
         # editable model spectrum object
@@ -473,7 +472,7 @@ class ModelEditor(QWidget):
         output_formatter = "{:0.%sg}" % self.fitting_options['displayed_digits']
 
         kwargs = {}
-        if fitter is fitting.LevMarLSQFitter:
+        if isinstance(fitter, fitting.LevMarLSQFitter):
             kwargs['maxiter'] = self.fitting_options['max_iterations']
             kwargs['acc'] = self.fitting_options['relative_error']
             kwargs['epsilon'] = self.fitting_options['epsilon']
@@ -487,23 +486,17 @@ class ModelEditor(QWidget):
         spectrum = spectrum.new_flux_unit(plot_data_item.data_unit)
 
         # Setup the thread and begin execution.
-        self.fit_model_thread(spectrum=spectrum,
-                              model=result,
-                              fitter=fitter(),
-                              window=spectral_region,
-                              output_formatter=output_formatter)
+        self.fit_model_thread = FitModelThread(
+            spectrum=spectrum,
+            model=result,
+            fitter=fitter(),
+            fitter_kwargs=kwargs,
+            window=spectral_region)
+        self.fit_model_thread.result.connect(
+            lambda x, r=result: self._on_fit_model_finished(x, result=r))
         self.fit_model_thread.start()
 
-    def _fit_model_result(self, kwargs):
-        # The results are passed back as a dictionary. This oviates the need
-        # to specifiy type in the ``Signal`` attribute of the thread, which
-        # would be problemation because specutils make return a ``QuantityModel``
-        # which is not an astropy model subclass.
-        spectrum, result, fit_mod, output_formatter = (kwargs.get('spectrum'),
-                                                       kwargs.get('model'),
-                                                       kwargs.get('fit_mod'),
-                                                       kwargs.get('output_formatter'))
-
+    def _on_fit_model_finished(self, fit_mod, result=None):
         if fit_mod is None or result is None:
             logging.error("Fitted model result is `None`.")
             return
@@ -649,44 +642,34 @@ class FitModelThread(QThread):
     """
     QThread for running the model fitting operations in a separate thread from
     the GUI.
+
+    Parameters
+    ----------
+    spectrum : :class:`~specutils.Spectrum1D`
+        The spectrum data class to which the model will be fit.
+    model : :class:`~astropy.modeling.models.Fittable1DModel`
+        The model to be fit to the data.
+    fitter : :class:`~astropy.modeling.fitting.Fitter`
+        The fitter used in fitting the model to the data.
+    window : :class:`~specutils.spectra.spectral_region.SpectralRegion`
+        The spectral region class used to excise the particular portion of
+        the data used in the model fitting.
+    output_formatter : str
+        The format of the data to be passed to the method updating
+        displayed units in the GUI.
     """
     status = Signal(str, int)
-    result = Signal(dict)
+    result = Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, spectrum, model, fitter, fitter_kwargs=None, window=None,
+                 parent=None):
         super(FitModelThread, self).__init__(parent)
 
-        self.spectrum = None
-        self.model = None
-        self.fitter = None
-        self.window = None
-        self.output_formatter = None
-
-    def __call__(self, spectrum, model, fitter, window=None, output_formatter=None):
-        """
-        QThread should persist as an attached instance on a QObject class. To
-        run a thread, we overload the call dunder method.
-
-        Parameters
-        ----------
-        spectrum : :class:`~specutils.Spectrum1D`
-            The spectrum data class to which the model will be fit.
-        model : :class:`~astropy.modeling.models.Fittable1DModel`
-            The model to be fit to the data.
-        fitter : :class:`~astropy.modeling.fitting.Fitter`
-            The fitter used in fitting the model to the data.
-        window : :class:`~specutils.spectra.spectral_region.SpectralRegion`
-            The spectral region class used to excise the particular portion of
-            the data used in the model fitting.
-        output_formatter : str
-            The format of the data to be passed to the method updating
-            displayed units in the GUI.
-        """
         self.spectrum = spectrum
         self.model = model
         self.fitter = fitter
+        self.fitter_kwargs = fitter_kwargs or {}
         self.window = window
-        self.output_formatter = output_formatter
 
     def run(self):
         """
@@ -695,12 +678,11 @@ class FitModelThread(QThread):
         self.status.emit("Fitting model...", 0)
 
         fit_mod = fit_lines(self.spectrum, self.model, fitter=self.fitter,
-                            window=self.window)
+                            window=self.window, **self.fitter_kwargs)
 
         if not self.fitter.fit_info.get('message', ""):
             self.status.emit("Fit completed successfully!", 5000)
         else:
             self.status.emit("Fit completed, but with warnings.", 5000)
 
-        self.result.emit({'spectrum': self.spectrum, 'model': self.model,
-                          'fit_mod': fit_mod, 'output_formatter': self.output_formatter})
+        self.result.emit(fit_mod)

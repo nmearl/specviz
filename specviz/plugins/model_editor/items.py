@@ -34,10 +34,12 @@ class ModelDataItem(DataItem):
         result = self.model_editor_model.evaluate()
 
         if result is not None:
-            flux = result(self.spectral_axis.value) * self.data(self.DataRole).flux.unit
+            flux = result(self.spectral_axis.value) * self.data(
+                self.DataRole).flux.unit
             self.data(self.DataRole)._data = flux.value
         else:
-            self.data(self.DataRole)._data = np.zeros_like(self.data(self.DataRole)._data)
+            self.data(self.DataRole)._data = np.zeros_like(
+                self.data(self.DataRole)._data)
 
         return self.data(self.DataRole).flux
 
