@@ -146,7 +146,7 @@ class SpectralOperationHandler(QDialog):
 
         op_worker = OperationWorker(self._compose_cube(), op_func)
 
-        self._op_thread = QThread(parent=self.parent())
+        self._op_thread = QThread(parent=self)
         op_worker.moveToThread(self._op_thread)
 
         op_worker.result.connect(self.on_finished)
