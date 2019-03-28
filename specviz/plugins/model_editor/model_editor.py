@@ -1,19 +1,18 @@
+import logging
 import os
 import pickle
 import uuid
-import logging
 
 import numpy as np
-from astropy.modeling import fitting, models, optimizers, Fittable1DModel
-from qtpy.QtCore import Qt, QThread, Signal
+from astropy.modeling import fitting, models, optimizers
+from qtpy.QtCore import QSortFilterProxyModel, QThread, Qt, Signal
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (QAction, QDialog, QFileDialog, QInputDialog, QMenu,
                             QMessageBox, QToolButton, QWidget)
 from qtpy.uic import loadUi
 from specutils.fitting import fit_lines
-from specutils.utils import QuantityModel
-from specutils.manipulation.utils import excise_regions
 from specutils.spectra import Spectrum1D
+from specutils.utils import QuantityModel
 
 from .equation_editor_dialog import ModelEquationEditorDialog
 from .initializers import initialize
@@ -94,7 +93,9 @@ class ModelEditor(QWidget):
         self.save_model_button.clicked.connect(self._on_save_model)
         self.load_model_button.clicked.connect(self._on_load_from_file)
 
-        self.data_selection_combo.setModel(self.hub.model)
+        self._data_item_proxy_model = DataItemProxyModel()
+        self._data_item_proxy_model.setSourceModel(self.hub.model)
+        self.data_selection_combo.setModel(self._data_item_proxy_model)
         self.data_selection_combo.currentIndexChanged.connect(self._redraw_model)
 
         # When a plot data item is select, get its model editor model
@@ -686,3 +687,19 @@ class FitModelThread(QThread):
             self.status.emit("Fit completed, but with warnings.", 5000)
 
         self.result.emit(fit_mod)
+
+
+class DataItemProxyModel(QSortFilterProxyModel):
+    """
+    Proxy model to filter out model data items for display in the model editor
+    list. Items in the data selection list should only be data items, as model
+    data items cannot have new model data items associated with them.
+    """
+    def filterAcceptsRow(self, source_row, source_parent):
+        """
+        Filter out model data items in the model rows.
+        """
+        idx = self.sourceModel().index(source_row, 0, source_parent)
+        item = self.sourceModel().itemFromIndex(idx)
+
+        return not isinstance(item, ModelDataItem)
