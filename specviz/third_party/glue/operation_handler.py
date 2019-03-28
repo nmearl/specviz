@@ -161,7 +161,7 @@ class SpectralOperationHandler(QDialog):
     def on_aborted(self):
         """Called when the user aborts the operation."""
         self._op_thread.terminate()
-        self.progress_bar.setValue(0)
+        self.progress_bar.reset()
 
         # Hide the progress bar and abort button
         self.abort_button.setEnabled(False)

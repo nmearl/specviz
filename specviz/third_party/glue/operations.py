@@ -137,7 +137,7 @@ def fit_spaxels(viewer):
                                    spectral_axis[mask],
                                    flux[mask])
 
-                new_data = fit_model(spectral_axis[mask])
+                new_data = fit_model(spectral_axis)
 
                 out[:, x, y] = new_data
 
