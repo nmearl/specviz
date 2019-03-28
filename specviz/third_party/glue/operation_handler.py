@@ -144,15 +144,14 @@ class SpectralOperationHandler(QDialog):
         else:
             op_func = self._function
 
-        op_worker = OperationWorker(self._compose_cube(), op_func)
+        self._op_thread = QThread()
 
-        self._op_thread = QThread(parent=self)
-        op_worker.moveToThread(self._op_thread)
+        self._op_worker = OperationWorker(self._compose_cube(), op_func)
+        self._op_worker.moveToThread(self._op_thread)
+        self._op_worker.result.connect(self.on_finished)
+        self._op_worker.status.connect(self.on_status_updated)
 
-        op_worker.result.connect(self.on_finished)
-        op_worker.status.connect(self.on_status_updated)
-
-        self._op_thread.started.connect(op_worker.run)
+        self._op_thread.started.connect(self._op_worker.run)
         self._op_thread.start()
 
         # data, unit = op_func(self._compose_cube(), None)

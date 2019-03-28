@@ -61,9 +61,8 @@ def fitted_linemap(viewer):
                             "linemap operation.")
         return
 
-    def threadable_function(data, tracker, spectral_axis, mask, model):
+    def threadable_function(data, tracker, spectral_axis, mask, model, fitter):
         out = np.empty(shape=data.shape[1:])
-        fitter = LevMarLSQFitter()
 
         for x in range(data.shape[1]):
             for y in range(data.shape[2]):
@@ -91,7 +90,8 @@ def fitted_linemap(viewer):
     spectral_operation = SpectralOperationHandler(
         data=data,
         function=lambda *args: threadable_function(
-            *args, spectral_axis=spectral_axis, mask=mask, model=model),
+            *args, spectral_axis=spectral_axis, mask=mask, model=model,
+            fitter=LevMarLSQFitter()),
         operation_name="Fitted Linemap",
         component_id=component_id,
         layout=viewer._layout,
@@ -125,9 +125,8 @@ def fit_spaxels(viewer):
                             "linemap operation.")
         return
 
-    def threadable_function(data, tracker, spectral_axis, mask, model):
+    def threadable_function(data, tracker, spectral_axis, mask, model, fitter):
         out = np.empty(shape=data.shape)
-        fitter = LevMarLSQFitter()
 
         for x in range(data.shape[1]):
             for y in range(data.shape[2]):
@@ -155,7 +154,8 @@ def fit_spaxels(viewer):
     spectral_operation = SpectralOperationHandler(
         data=data,
         function=lambda *args: threadable_function(
-            *args, model=model, spectral_axis=spectral_axis, mask=mask),
+            *args, model=model, spectral_axis=spectral_axis, mask=mask,
+            fitter=LevMarLSQFitter()),
         operation_name="Fit Spaxels",
         component_id=component_id,
         layout=viewer._layout,
