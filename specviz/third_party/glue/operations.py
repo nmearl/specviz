@@ -89,9 +89,10 @@ def fitted_linemap(viewer):
 
     spectral_operation = SpectralOperationHandler(
         data=data,
-        function=lambda *args: threadable_function(
-            *args, spectral_axis=spectral_axis, mask=mask, model=model,
-            fitter=LevMarLSQFitter()),
+        function=lambda *args, model=model, spectral_axis=spectral_axis, mask=mask,
+            fitter=LevMarLSQFitter(): threadable_function(
+            *args, model=model, spectral_axis=spectral_axis, mask=mask,
+            fitter=fitter),
         operation_name="Fitted Linemap",
         component_id=component_id,
         layout=viewer._layout,
@@ -153,9 +154,10 @@ def fit_spaxels(viewer):
 
     spectral_operation = SpectralOperationHandler(
         data=data,
-        function=lambda *args: threadable_function(
+        function=lambda *args, model=model, spectral_axis=spectral_axis, mask=mask,
+            fitter=LevMarLSQFitter(): threadable_function(
             *args, model=model, spectral_axis=spectral_axis, mask=mask,
-            fitter=LevMarLSQFitter()),
+            fitter=fitter),
         operation_name="Fit Spaxels",
         component_id=component_id,
         layout=viewer._layout,
